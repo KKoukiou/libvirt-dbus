@@ -16,6 +16,16 @@ struct _virtDBusGDBusSubtreeData {
 };
 typedef struct _virtDBusGDBusSubtreeData virtDBusGDBusSubtreeData;
 
+struct _virtDBusGDBusThreadData {
+    const gchar *objectPath;
+    const gchar *interfaceName;
+    const gchar *methodName;
+    GVariant *parameters;
+    GDBusMethodInvocation *invocation;
+    virtDBusGDBusMethodData *methodData;
+};
+typedef struct _virtDBusGDBusThreadData virtDBusGDBusThreadData;
+
 static const gchar *dbusInterfacePrefix = NULL;
 
 /**
@@ -227,6 +237,38 @@ virtDBusGDBusHandleMethod(GVariant *parameters,
 }
 
 static void
+virtDBusGDBusMethodCallThread(gpointer threadData,
+                              gpointer userData G_GNUC_UNUSED)
+{
+    g_autofree virtDBusGDBusThreadData *data = threadData;
+
+    if (g_strcmp0(data->interfaceName, "org.freedesktop.DBus.Properties") == 0) {
+        if (g_strcmp0(data->methodName, "Get") == 0) {
+            virtDBusGDBusHandlePropertyGet(data->parameters, data->invocation,
+                                           data->objectPath, data->methodData);
+        } else if (g_strcmp0(data->methodName, "Set") == 0) {
+            virtDBusGDBusHandlePropertySet(data->parameters, data->invocation,
+                                           data->objectPath, data->methodData);
+        } else if (g_strcmp0(data->methodName, "GetAll") == 0) {
+            virtDBusGDBusHandlePropertyGetAll(data->invocation, data->objectPath,
+                                              data->methodData);
+        } else {
+            g_dbus_method_invocation_return_error(data->invocation,
+                                                  G_DBUS_ERROR,
+                                                  G_DBUS_ERROR_UNKNOWN_METHOD,
+                                                  "unknown method '%s'",
+                                                  data->methodName);
+        }
+    } else {
+        virtDBusGDBusHandleMethod(data->parameters, data->invocation,
+                                  data->objectPath, data->methodName,
+                                  data->methodData);
+    }
+}
+
+GThreadPool *threadPool;
+
+static void
 virtDBusGDBusHandleMethodCall(GDBusConnection *connection G_GNUC_UNUSED,
                               const gchar *sender G_GNUC_UNUSED,
                               const gchar *objectPath,
@@ -236,27 +278,18 @@ virtDBusGDBusHandleMethodCall(GDBusConnection *connection G_GNUC_UNUSED,
                               GDBusMethodInvocation *invocation,
                               gpointer userData)
 {
-    virtDBusGDBusMethodData *data = userData;
+    virtDBusGDBusThreadData *data = g_new0(virtDBusGDBusThreadData, 1);
 
-    if (g_strcmp0(interfaceName, "org.freedesktop.DBus.Properties") == 0) {
-        if (g_strcmp0(methodName, "Get") == 0) {
-            virtDBusGDBusHandlePropertyGet(parameters, invocation,
-                                           objectPath, data);
-        } else if (g_strcmp0(methodName, "Set") == 0) {
-            virtDBusGDBusHandlePropertySet(parameters, invocation,
-                                           objectPath, data);
-        } else if (g_strcmp0(methodName, "GetAll") == 0) {
-            virtDBusGDBusHandlePropertyGetAll(invocation, objectPath, data);
-        } else {
-            g_dbus_method_invocation_return_error(invocation,
-                                                  G_DBUS_ERROR,
-                                                  G_DBUS_ERROR_UNKNOWN_METHOD,
-                                                  "unknown method '%s'", methodName);
-        }
-    } else {
-        virtDBusGDBusHandleMethod(parameters, invocation, objectPath,
-                                  methodName, data);
-    }
+    g_assert(data);
+
+    data->objectPath = objectPath;
+    data->interfaceName = interfaceName;
+    data->methodName = methodName;
+    data->parameters = parameters;
+    data->invocation = invocation;
+    data->methodData = userData;
+
+    g_thread_pool_push(threadPool, data, NULL);
 }
 
 static const GDBusInterfaceVTable virtDBusGDBusVtable = {
@@ -395,4 +428,26 @@ virtDBusGDBusRegisterSubtree(GDBusConnection *bus,
                                        data,
                                        virtDBusGDBusSubtreeDataFree,
                                        NULL);
+}
+
+/**
+ * virtDBusGDBusPrepareThreadPool:
+ * @maxThreads: the number of maximum threads in thread pool
+ * @error: return location for error or NULL
+ *
+ * Initializes thread pool to be used to process D-Bus messages.
+ *
+ * Returns TRUE on success, FALSE on error and sets @error.
+ */
+gboolean
+virtDBusGDBusPrepareThreadPool(gint maxThreads,
+                               GError **error)
+{
+    threadPool = g_thread_pool_new(virtDBusGDBusMethodCallThread,
+                                   NULL,
+                                   maxThreads,
+                                   FALSE,
+                                   error);
+
+    return !!threadPool;
 }
