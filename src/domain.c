@@ -321,12 +321,15 @@ virtDBusDomainShutdown(GVariant *inArgs G_GNUC_UNUSED,
 {
     virtDBusConnect *connect = userData;
     g_autoptr(virDomain) domain = NULL;
+    guint flags;
+
+    g_variant_get(inArgs, "(u)", &flags);
 
     domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
     if (!domain)
         return;
 
-    if (virDomainShutdown(domain) < 0)
+    if (virDomainShutdownFlags(domain, flags) < 0)
         virtDBusUtilSetLastVirtError(error);
 }
 
@@ -409,12 +412,15 @@ virtDBusDomainCreate(GVariant *inArgs G_GNUC_UNUSED,
 {
     virtDBusConnect *connect = userData;
     g_autoptr(virDomain) domain = NULL;
+    guint flags;
+
+    g_variant_get(inArgs, "(u)", &flags);
 
     domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
     if (!domain)
         return;
 
-    if (virDomainCreate(domain) < 0)
+    if (virDomainCreateWithFlags(domain, flags) < 0)
         virtDBusUtilSetLastVirtError(error);
 }
 
@@ -429,12 +435,15 @@ virtDBusDomainUndefine(GVariant *inArgs G_GNUC_UNUSED,
 {
     virtDBusConnect *connect = userData;
     g_autoptr(virDomain) domain = NULL;
+    guint flags;
+
+    g_variant_get(inArgs, "(u)", &flags);
 
     domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
     if (!domain)
         return;
 
-    if (virDomainUndefine(domain) < 0)
+    if (virDomainUndefineFlags(domain, flags) < 0)
         virtDBusUtilSetLastVirtError(error);
 }
 
