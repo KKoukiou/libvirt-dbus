@@ -384,6 +384,41 @@ virtDBusDomainAttachDevice(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainBlockPeek(GVariant *inArgs,
+                        GUnixFDList *inFDs G_GNUC_UNUSED,
+                        const gchar *objectPath,
+                        gpointer userData,
+                        GVariant **outArgs,
+                        GUnixFDList **outFDs G_GNUC_UNUSED,
+                        GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    const gchar *disk;
+    gulong offset;
+    guint size;
+    guint flags;
+    g_autofree guchar *buffer = NULL;
+    GVariantBuilder *builder;
+
+    g_variant_get(inArgs, "(&stuu)", &disk, &offset, &size, &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    buffer = g_new0(guchar, size);
+    if (virDomainBlockPeek(domain, disk, offset, size, buffer, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+
+    builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
+    for (unsigned int i = 0; i < size; i++)
+        g_variant_builder_add(builder, "y", buffer[i]);
+
+    *outArgs = g_variant_builder_end(builder);
+}
+
+static void
 virtDBusDomainCreate(GVariant *inArgs,
                      GUnixFDList *inFDs G_GNUC_UNUSED,
                      const gchar *objectPath,
@@ -1203,6 +1238,7 @@ static virtDBusGDBusPropertyTable virtDBusDomainPropertyTable[] = {
 static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "AbortJob", virtDBusDomainAbortJob },
     { "AttachDevice", virtDBusDomainAttachDevice },
+    { "BlockPeek", virtDBusDomainBlockPeek },
     { "Create", virtDBusDomainCreate },
     { "Destroy", virtDBusDomainDestroy },
     { "DetachDevice", virtDBusDomainDetachDevice },
