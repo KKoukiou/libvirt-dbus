@@ -857,6 +857,40 @@ virtDBusDomainManagedSaveRemove(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainMemoryPeek(GVariant *inArgs,
+                         GUnixFDList *inFDs G_GNUC_UNUSED,
+                         const gchar *objectPath,
+                         gpointer userData,
+                         GVariant **outArgs,
+                         GUnixFDList **outFDs G_GNUC_UNUSED,
+                         GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    gulong offset;
+    guint size;
+    guint flags;
+    g_autofree guchar *buffer = NULL;
+    GVariantBuilder *builder;
+
+    g_variant_get(inArgs, "(tuu)", &offset, &size, &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    buffer = g_new0(guchar, size);
+    if (virDomainMemoryPeek(domain, offset, size, buffer, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+
+    builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
+    for (unsigned int i = 0; i < size; i++)
+        g_variant_builder_add(builder, "y", buffer[i]);
+
+    *outArgs = g_variant_builder_end(builder);
+}
+
+static void
 virtDBusDomainMemoryStats(GVariant *inArgs,
                           GUnixFDList *inFDs G_GNUC_UNUSED,
                           const gchar *objectPath,
@@ -1254,6 +1288,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "InjectNMI", virtDBusDomainInjectNMI },
     { "ManagedSave", virtDBusDomainManagedSave },
     { "ManagedSaveRemove", virtDBusDomainManagedSaveRemove },
+    { "MemoryPeek", virtDBusDomainMemoryPeek },
     { "MemoryStats", virtDBusDomainMemoryStats },
     { "MigrateGetMaxDowntime", virtDBusDomainMigrateGetMaxDowntime },
     { "MigrateGetMaxSpeed", virtDBusDomainMigrateGetMaxSpeed },
