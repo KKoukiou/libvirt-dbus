@@ -519,6 +519,34 @@ virtDBusDomainBlockPull(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainBlockRebase(GVariant *inArgs,
+                          GUnixFDList *inFDs G_GNUC_UNUSED,
+                          const gchar *objectPath,
+                          gpointer userData,
+                          GVariant **outArgs G_GNUC_UNUSED,
+                          GUnixFDList **outFDs G_GNUC_UNUSED,
+                          GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    const gchar *disk;
+    const gchar *base;
+    gulong bandwidth;
+    guint flags;
+
+    g_variant_get(inArgs, "(&s&stu)", &disk, &base, &bandwidth, &flags);
+    if (g_strcmp0(base, "") == 0)
+        base = NULL;
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    if (virDomainBlockRebase(domain, disk, base, bandwidth, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+}
+
+static void
 virtDBusDomainCreate(GVariant *inArgs,
                      GUnixFDList *inFDs G_GNUC_UNUSED,
                      const gchar *objectPath,
@@ -1377,6 +1405,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "BlockJobAbort", virtDBusDomainBlockJobAbort },
     { "BlockPeek", virtDBusDomainBlockPeek },
     { "BlockPull", virtDBusDomainBlockPull },
+    { "BlockRebase", virtDBusDomainBlockRebase },
     { "Create", virtDBusDomainCreate },
     { "Destroy", virtDBusDomainDestroy },
     { "DetachDevice", virtDBusDomainDetachDevice },
