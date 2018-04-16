@@ -762,6 +762,45 @@ virtDBusDomainFSFreeze(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainFSThaw(GVariant *inArgs,
+                     GUnixFDList *inFDs G_GNUC_UNUSED,
+                     const gchar *objectPath,
+                     gpointer userData,
+                     GVariant **outArgs,
+                     GUnixFDList **outFDs G_GNUC_UNUSED,
+                     GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autofree const gchar **mountpoints = NULL;
+    GVariantIter *iter;
+    guint nmountpoints;
+    guint flags;
+    gint ret;
+
+    g_variant_get(inArgs, "(asu)", &iter, &flags);
+
+    nmountpoints = g_variant_iter_n_children(iter);
+    if (nmountpoints) {
+        mountpoints = g_new0(const gchar*, nmountpoints + 1);
+        while (g_variant_iter_loop(iter, "s", &mountpoints[nmountpoints]))
+            nmountpoints++;
+        nmountpoints--;
+        g_variant_iter_free(iter);
+    }
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    ret = virDomainFSThaw(domain, (const gchar **)mountpoints, nmountpoints, flags);
+    if (ret < 0)
+        virtDBusUtilSetLastVirtError(error);
+
+    *outArgs = g_variant_new("(u)", ret);
+}
+
+static void
 virtDBusDomainGetBlkioParameters(GVariant *inArgs,
                                  GUnixFDList *inFDs G_GNUC_UNUSED,
                                  const gchar *objectPath,
@@ -1559,6 +1598,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "Destroy", virtDBusDomainDestroy },
     { "DetachDevice", virtDBusDomainDetachDevice },
     { "FSFreeze", virtDBusDomainFSFreeze },
+    { "FSThaw", virtDBusDomainFSThaw },
     { "GetBlkioParameters", virtDBusDomainGetBlkioParameters },
     { "GetControlInfo", virtDBusDomainGetControlInfo },
     { "GetJobInfo", virtDBusDomainGetJobInfo },
