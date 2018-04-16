@@ -620,6 +620,38 @@ virtDBusDomainCreate(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainCreateWithFiles(GVariant *inArgs,
+                              GUnixFDList *inFDs G_GNUC_UNUSED,
+                              const gchar *objectPath,
+                              gpointer userData,
+                              GVariant **outArgs G_GNUC_UNUSED,
+                              GUnixFDList **outFDs G_GNUC_UNUSED,
+                              GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autofree const gint *files = NULL;
+    gsize nfiles;
+    guint flags;
+    GVariant *v;
+
+    v = g_variant_get_child_value(inArgs, 0);
+    files = g_variant_get_fixed_array(v, &nfiles, sizeof(gint));
+    g_variant_unref(v);
+
+    v = g_variant_get_child_value(inArgs, 1);
+    flags = g_variant_get_uint32(v);
+    g_variant_unref(v);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    if (virDomainCreateWithFiles(domain, nfiles, (gint *)files, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+}
+
+static void
 virtDBusDomainDestroy(GVariant *inArgs,
                       GUnixFDList *inFDs G_GNUC_UNUSED,
                       const gchar *objectPath,
@@ -1459,6 +1491,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "BlockResize", virtDBusDomainBlockResize },
     { "CoreDumpWithFormat", virtDBusDomainCoreDumpWithFormat },
     { "Create", virtDBusDomainCreate },
+    { "CreateWithFiles", virtDBusDomainCreateWithFiles },
     { "Destroy", virtDBusDomainDestroy },
     { "DetachDevice", virtDBusDomainDetachDevice },
     { "GetBlkioParameters", virtDBusDomainGetBlkioParameters },
