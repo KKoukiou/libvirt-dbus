@@ -1390,6 +1390,39 @@ virtDBusDomainMigrateStartPostCopy(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainPinEmulator(GVariant *inArgs,
+                          GUnixFDList *inFDs G_GNUC_UNUSED,
+                          const gchar *objectPath,
+                          gpointer userData,
+                          GVariant **outArgs G_GNUC_UNUSED,
+                          GUnixFDList **outFDs G_GNUC_UNUSED,
+                          GError **error)
+
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autofree const guchar *cpumap = NULL;
+    gsize maplen;
+    guint flags;
+    GVariant *v;
+
+    v = g_variant_get_child_value(inArgs, 0);
+    cpumap = g_variant_get_fixed_array(v, &maplen, sizeof(guchar));
+    g_variant_unref(v);
+
+    v = g_variant_get_child_value(inArgs, 1);
+    flags = g_variant_get_uint32(v);
+    g_variant_unref(v);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    if (virDomainPinEmulator(domain, (guchar *)cpumap, maplen, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+}
+
+static void
 virtDBusDomainReboot(GVariant *inArgs,
                      GUnixFDList *inFDs G_GNUC_UNUSED,
                      const gchar *objectPath,
@@ -1670,6 +1703,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "MigrateSetMaxDowntime", virtDBusDomainMigrateSetMaxDowntime },
     { "MigrateSetMaxSpeed", virtDBusDomainMigrateSetMaxSpeed },
     { "MigrateStartPostCopy", virtDBusDomainMigrateStartPostCopy },
+    { "PinEmulator", virtDBusDomainPinEmulator },
     { "Reboot", virtDBusDomainReboot },
     { "Reset", virtDBusDomainReset },
     { "Resume", virtDBusDomainResume },
