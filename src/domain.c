@@ -652,6 +652,30 @@ virtDBusDomainCreateWithFiles(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainDelIOThread(GVariant *inArgs,
+                          GUnixFDList *inFDs G_GNUC_UNUSED,
+                          const gchar *objectPath,
+                          gpointer userData,
+                          GVariant **outArgs G_GNUC_UNUSED,
+                          GUnixFDList **outFDs G_GNUC_UNUSED,
+                          GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    guint iothreadId;
+    guint flags;
+
+    g_variant_get(inArgs, "(uu)", &iothreadId, &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    if (virDomainDelIOThread(domain, iothreadId, flags) < 0)
+        virtDBusUtilSetLastVirtError(error);
+}
+
+static void
 virtDBusDomainDestroy(GVariant *inArgs,
                       GUnixFDList *inFDs G_GNUC_UNUSED,
                       const gchar *objectPath,
@@ -1492,6 +1516,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "CoreDumpWithFormat", virtDBusDomainCoreDumpWithFormat },
     { "Create", virtDBusDomainCreate },
     { "CreateWithFiles", virtDBusDomainCreateWithFiles },
+    { "DelIOThread", virtDBusDomainDelIOThread },
     { "Destroy", virtDBusDomainDestroy },
     { "DetachDevice", virtDBusDomainDetachDevice },
     { "GetBlkioParameters", virtDBusDomainGetBlkioParameters },
