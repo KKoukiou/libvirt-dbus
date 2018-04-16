@@ -236,6 +236,49 @@ virtDBusConnectDomainCreateXML(GVariant *inArgs,
 }
 
 static void
+virtDBusConnectDomainCreateXMLWithFiles(GVariant *inArgs,
+                                        GUnixFDList *inFDs G_GNUC_UNUSED,
+                                        const gchar *objectPath G_GNUC_UNUSED,
+                                        gpointer userData,
+                                        GVariant **outArgs,
+                                        GUnixFDList **outFDs G_GNUC_UNUSED,
+                                        GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autofree gchar *path = NULL;
+    gsize xml_len;
+    const gchar *xml = NULL;
+    gsize nfiles;
+    const gint *files = NULL;
+    guint flags;
+    GVariant *v;
+
+    v = g_variant_get_child_value(inArgs, 0);
+    xml = g_variant_get_string(v, &xml_len);
+    g_variant_unref(v);
+
+    v = g_variant_get_child_value(inArgs, 1);
+    files = g_variant_get_fixed_array(v, &nfiles, sizeof(gint));
+    g_variant_unref(v);
+
+    v = g_variant_get_child_value(inArgs, 2);
+    flags = g_variant_get_uint32(inArgs);
+    g_variant_unref(v);
+
+    if (!virtDBusConnectOpen(connect, error))
+        return;
+
+    domain = virDomainCreateXMLWithFiles(connect->connection, xml, nfiles, (gint *)files, flags);
+    if (!domain)
+        return virtDBusUtilSetLastVirtError(error);
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    *outArgs = g_variant_new("(o)", path);
+}
+
+static void
 virtDBusConnectDomainDefineXML(GVariant *inArgs,
                                GUnixFDList *inFDs G_GNUC_UNUSED,
                                const gchar *objectPath G_GNUC_UNUSED,
@@ -576,6 +619,7 @@ static virtDBusGDBusPropertyTable virtDBusConnectPropertyTable[] = {
 
 static virtDBusGDBusMethodTable virtDBusConnectMethodTable[] = {
     { "DomainCreateXML", virtDBusConnectDomainCreateXML },
+    { "DomainCreateXMLWithFiles", virtDBusConnectDomainCreateXMLWithFiles },
     { "DomainDefineXML", virtDBusConnectDomainDefineXML },
     { "DomainLookupByID", virtDBusConnectDomainLookupByID },
     { "DomainLookupByName", virtDBusConnectDomainLookupByName },
