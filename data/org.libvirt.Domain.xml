@@ -191,6 +191,14 @@
       <arg name="flags" type="u" direction="in"/>
       <arg name="controlInfo" type="(sst)" direction="out"/>
     </method>
+    <method name="GetCPUStats">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetCPUStats
+               @total should be set to get total stats instead of per-cpu stats."/>
+      <arg name="total" type="b" direction="in"/>
+      <arg name="flags" type="u" direction="in"/>
+      <arg name="controlInfo" type="a(sa{sv})" direction="out"/>
+    </method>
     <method name="GetJobInfo">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetJobInfo"/>

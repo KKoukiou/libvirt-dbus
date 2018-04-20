@@ -997,6 +997,68 @@ virtDBusDomainGetControlInfo(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainGetCPUStats(GVariant *inArgs,
+                          GUnixFDList *inFDs G_GNUC_UNUSED,
+                          const gchar *objectPath,
+                          gpointer userData,
+                          GVariant **outArgs,
+                          GUnixFDList **outFDs G_GNUC_UNUSED,
+                          GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_auto(virtDBusUtilTypedParams) params = { .params = NULL, .nparams = 16 };
+    gint startCPU = 0;
+    guint ncpus = 128;
+    gboolean total;
+    guint flags;
+    GVariant *gret;
+    GVariantBuilder builder;
+    gint nstats;
+
+    g_variant_get(inArgs, "(bu)", &total, &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    if (total) {
+        startCPU = -1;
+        ncpus = 1;
+    }
+    params.params = g_new0(virTypedParameter, ncpus * params.nparams + 1);
+
+    nstats = virDomainGetCPUStats(domain, params.params, params.nparams,
+                                  startCPU, ncpus, flags);
+    if (nstats < 0)
+        return virtDBusUtilSetLastVirtError(error);
+
+    g_variant_builder_init(&builder, G_VARIANT_TYPE("a(sa{sv})"));
+
+    for (guint i = 0; i < ncpus; i++) {
+        g_autofree gchar *name = NULL;
+        GVariant *grecords;
+
+        if (params.params[i * params.nparams].type == 0)
+            continue;
+
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("(sa{sv})"));
+        grecords = virtDBusUtilTypedParamsToGVariant(params.params + i*params.nparams,
+                                                     params.nparams);
+        if (!total)
+            name = g_strdup_printf("CPU%d", i + startCPU);
+        else
+            name = g_strdup_printf("Total");
+        g_variant_builder_add(&builder, "s", name);
+        g_variant_builder_add_value(&builder, grecords);
+        g_variant_builder_close(&builder);
+    }
+    gret = g_variant_builder_end(&builder);
+
+    *outArgs = g_variant_new_tuple(&gret, 1);
+}
+
+static void
 virtDBusDomainGetJobInfo(GVariant *inArgs G_GNUC_UNUSED,
                          GUnixFDList *inFDs G_GNUC_UNUSED,
                          const gchar *objectPath,
@@ -2074,6 +2136,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "GetBlockIoTune", virtDBusDomainGetBlockIoTune },
     { "GetBlockJobInfo", virtDBusDomainGetBlockJobInfo },
     { "GetControlInfo", virtDBusDomainGetControlInfo },
+    { "GetCPUStats", virtDBusDomainGetCPUStats },
     { "GetJobInfo", virtDBusDomainGetJobInfo },
     { "GetMemoryParameters", virtDBusDomainGetMemoryParameters },
     { "GetSchedulerParameters", virtDBusDomainGetSchedulerParameters },
