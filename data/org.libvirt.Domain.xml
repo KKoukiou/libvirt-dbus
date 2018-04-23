@@ -199,6 +199,12 @@
       <arg name="flags" type="u" direction="in"/>
       <arg name="controlInfo" type="a(sa{sv})" direction="out"/>
     </method>
+    <method name="GetDiskErrors">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetDiskErrors"/>
+      <arg name="flags" type="u" direction="in"/>
+      <arg name="diskErrors" type="a(ss)" direction="out"/>
+    </method>
     <method name="GetJobInfo">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virDomainGetJobInfo"/>
