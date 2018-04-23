@@ -66,6 +66,17 @@ VIRT_DBUS_ENUM_IMPL(virtDBusDomainMetadata,
                     "title",
                     "element")
 
+static void
+virtDBusDomainFSInfoListFree(virDomainFSInfoPtr *info)
+{
+    for (gint i = 0; info[i] != NULL; i++)
+        virDomainFSInfoFree(info[i]);
+
+    g_free(info);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(virDomainFSInfoPtr, virtDBusDomainFSInfoListFree);
+
 static GVariant *
 virtDBusDomainMemoryStatsToGVariant(virDomainMemoryStatPtr stats,
                                     gint nr_stats)
@@ -1116,6 +1127,53 @@ virtDBusDomainGetDiskErrors(GVariant *inArgs,
     res = g_variant_builder_end(&builder);
 
     *outArgs = g_variant_new_tuple(&res, 1);
+}
+
+static void
+virtDBusDomainGetFSInfo(GVariant *inArgs,
+                        GUnixFDList *inFDs G_GNUC_UNUSED,
+                        const gchar *objectPath,
+                        gpointer userData,
+                        GVariant **outArgs,
+                        GUnixFDList **outFDs G_GNUC_UNUSED,
+                        GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autoptr(virDomainFSInfoPtr) info = NULL;
+    GVariantBuilder builder;
+    guint flags;
+    gint ret;
+    GVariant *gret;
+
+    g_variant_get(inArgs, "(u)", &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    ret = virDomainGetFSInfo(domain, &info, flags);
+    if (ret < 0)
+        return virtDBusUtilSetLastVirtError(error);
+
+    g_variant_builder_init(&builder, G_VARIANT_TYPE("a(sssas)"));
+
+    for (gint i = 0; i < ret; i++) {
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("(sssas)"));
+        g_variant_builder_add(&builder, "s", info[i]->mountpoint);
+        g_variant_builder_add(&builder, "s", info[i]->name);
+        g_variant_builder_add(&builder, "s", info[i]->fstype);
+
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("as"));
+        for (guint j = 0; j < info[i]->ndevAlias; j++) {
+            g_variant_builder_add(&builder, "s", info[i]->devAlias[j]);
+            g_variant_builder_close(&builder);
+        }
+        g_variant_builder_close(&builder);
+    }
+    gret = g_variant_builder_end(&builder);
+
+    *outArgs = g_variant_new_tuple(&gret, 1);
 }
 
 static void
@@ -2198,6 +2256,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "GetControlInfo", virtDBusDomainGetControlInfo },
     { "GetCPUStats", virtDBusDomainGetCPUStats },
     { "GetDiskErrors", virtDBusDomainGetDiskErrors },
+    { "GetFSInfo", virtDBusDomainGetFSInfo },
     { "GetJobInfo", virtDBusDomainGetJobInfo },
     { "GetMemoryParameters", virtDBusDomainGetMemoryParameters },
     { "GetSchedulerParameters", virtDBusDomainGetSchedulerParameters },
