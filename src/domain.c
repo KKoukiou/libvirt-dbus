@@ -77,6 +77,18 @@ virtDBusDomainFSInfoListFree(virDomainFSInfoPtr *info)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(virDomainFSInfoPtr, virtDBusDomainFSInfoListFree);
 
+static void
+virtDBusDomainIOThreadInfoListFree(virDomainIOThreadInfoPtr *info)
+{
+    for (gint i = 0; info[i] != NULL; i += 1)
+        virDomainIOThreadInfoFree(info[i]);
+
+    g_free(info);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(virDomainIOThreadInfoPtr,
+                              virtDBusDomainIOThreadInfoListFree);
+
 static GVariant *
 virtDBusDomainMemoryStatsToGVariant(virDomainMemoryStatPtr stats,
                                     gint nr_stats)
@@ -1275,6 +1287,51 @@ virtDBusDomainGetInterfaceParameters(GVariant *inArgs,
 }
 
 static void
+virtDBusDomainGetIOThreadInfo(GVariant *inArgs G_GNUC_UNUSED,
+                              GUnixFDList *inFDs G_GNUC_UNUSED,
+                              const gchar *objectPath,
+                              gpointer userData,
+                              GVariant **outArgs,
+                              GUnixFDList **outFDs G_GNUC_UNUSED,
+                              GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virDomain) domain = NULL;
+    g_autoptr(virDomainIOThreadInfoPtr) info = NULL;
+    GVariantBuilder builder;
+    guint flags;
+    gint ret;
+    GVariant *gret;
+
+    g_variant_get(inArgs, "(u)", &flags);
+
+    domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
+    if (!domain)
+        return;
+
+    ret = virDomainGetIOThreadInfo(domain, &info, flags);
+    if (ret < 0)
+        return virtDBusUtilSetLastVirtError(error);
+
+    g_variant_builder_init(&builder, G_VARIANT_TYPE("a(uay)"));
+
+    for (gint i = 0; i < ret; i++) {
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("(uay)"));
+        g_variant_builder_add(&builder, "u", info[i]->iothread_id);
+
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("ay"));
+        for (gint j = 0; j < info[i]->cpumaplen; j++) {
+            g_variant_builder_add(&builder, "y", info[i]->cpumap[j]);
+            g_variant_builder_close(&builder);
+        }
+        g_variant_builder_close(&builder);
+    }
+    gret = g_variant_builder_end(&builder);
+
+    *outArgs = g_variant_new_tuple(&gret, 1);
+}
+
+static void
 virtDBusDomainGetJobInfo(GVariant *inArgs G_GNUC_UNUSED,
                          GUnixFDList *inFDs G_GNUC_UNUSED,
                          const gchar *objectPath,
@@ -2358,6 +2415,7 @@ static virtDBusGDBusMethodTable virtDBusDomainMethodTable[] = {
     { "GetGuestVcpus", virtDBusDomainGetGuestVcpus },
     { "GetHostname", virtDBusDomainGetHostname },
     { "GetInterfaceParameters", virtDBusDomainGetInterfaceParameters },
+    { "GetIOThreadInfo", virtDBusDomainGetIOThreadInfo },
     { "GetJobInfo", virtDBusDomainGetJobInfo },
     { "GetMemoryParameters", virtDBusDomainGetMemoryParameters },
     { "GetSchedulerParameters", virtDBusDomainGetSchedulerParameters },
