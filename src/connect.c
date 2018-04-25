@@ -850,6 +850,44 @@ virtDBusConnectNetworkLookupByUUID(GVariant *inArgs,
 }
 
 static void
+virtDBusConnectNodeGetCellsFreeMemory(GVariant *inArgs,
+                                      GUnixFDList *inFDs G_GNUC_UNUSED,
+                                      const gchar *objectPath G_GNUC_UNUSED,
+                                      gpointer userData,
+                                      GVariant **outArgs,
+                                      GUnixFDList **outFDs G_GNUC_UNUSED,
+                                      GError **error)
+{
+    virtDBusConnect *connect = userData;
+    gint startCell;
+    gint maxCells;
+    g_autofree guint64 *freeMems = NULL;
+    gint ret;
+    GVariantBuilder builder;
+    GVariant *res;
+
+    g_variant_get(inArgs, "(ii)", &startCell, &maxCells);
+
+    if (!virtDBusConnectOpen(connect, error))
+        return;
+
+    freeMems = g_new0(guint64, maxCells);
+
+    ret = virNodeGetCellsFreeMemory(connect->connection,
+                                    (unsigned long long *)freeMems,
+                                    startCell, maxCells);
+    if (ret < 0)
+        return virtDBusUtilSetLastVirtError(error);
+
+    g_variant_builder_init(&builder, G_VARIANT_TYPE("at"));
+    for (gint i = 0; i < ret; i++)
+        g_variant_builder_add(&builder, "t", freeMems[i]);
+    res = g_variant_builder_end(&builder);
+
+    *outArgs = g_variant_new_tuple(&res, 1);
+}
+
+static void
 virtDBusConnectNodeGetCPUMap(GVariant *inArgs,
                              GUnixFDList *inFDs G_GNUC_UNUSED,
                              const gchar *objectPath G_GNUC_UNUSED,
@@ -1167,6 +1205,7 @@ static virtDBusGDBusMethodTable virtDBusConnectMethodTable[] = {
     { "NetworkDefineXML", virtDBusConnectNetworkDefineXML },
     { "NetworkLookupByName", virtDBusConnectNetworkLookupByName },
     { "NetworkLookupByUUID", virtDBusConnectNetworkLookupByUUID },
+    { "NodeGetCellsFreeMemory", virtDBusConnectNodeGetCellsFreeMemory },
     { "NodeGetCPUMap", virtDBusConnectNodeGetCPUMap },
     { "NodeGetCPUStats", virtDBusConnectNodeGetCPUStats },
     { "NodeGetFreeMemory", virtDBusConnectNodeGetFreeMemory },
