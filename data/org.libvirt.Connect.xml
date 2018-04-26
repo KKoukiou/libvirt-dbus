@@ -206,6 +206,14 @@
       <arg name="params" type="a{sv}" direction="in"/>
       <arg name="flags" type="u" direction="in"/>
     </method>
+    <method name="NodeSuspendForDuration">
+      <annotation name="org.gtk.GDBus.DocString"
+          value="See https://libvirt.org/html/libvirt-libvirt-host.html#virNodeSuspendForDuration
+                 @target argument should be one of 'mem', 'disk' or 'hybrid'."/>
+      <arg name="target" type="s" direction="in"/>
+      <arg name="duration" type="t" direction="in"/>
+      <arg name="flags" type="u" direction="in"/>
+    </method>
     <signal name="DomainEvent">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventCallback"/>
