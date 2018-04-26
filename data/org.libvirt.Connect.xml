@@ -178,6 +178,11 @@
         value="See https://libvirt.org/html/libvirt-libvirt-host.html#virNodeGetFreeMemory"/>
       <arg name="freemem" type="t" direction="out"/>
     </method>
+    <method name="NodeGetInfo">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-host.html#virNodeGetInfo"/>
+      <arg name="info" type="(stuuuuuu)" direction="out"/>
+    </method>
     <signal name="DomainEvent">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventCallback"/>

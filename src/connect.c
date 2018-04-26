@@ -905,6 +905,30 @@ virtDBusConnectNodeGetFreeMemory(GVariant *inArgs G_GNUC_UNUSED,
     *outArgs = g_variant_new("(t)", freemem);
 }
 
+static void
+virtDBusConnectNodeGetInfo(GVariant *inArgs G_GNUC_UNUSED,
+                           GUnixFDList *inFDs G_GNUC_UNUSED,
+                           const gchar *objectPath G_GNUC_UNUSED,
+                           gpointer userData,
+                           GVariant **outArgs,
+                           GUnixFDList **outFDs G_GNUC_UNUSED,
+                           GError **error)
+
+{
+    virtDBusConnect *connect = userData;
+    virNodeInfo info;
+
+    if (!virtDBusConnectOpen(connect, error))
+        return;
+
+    if (virNodeGetInfo(connect->connection, &info) < 0)
+        return virtDBusUtilSetLastVirtError(error);
+
+    *outArgs = g_variant_new("((stuuuuuu))", info.model, info.memory,
+                             info.cpus, info.mhz, info.nodes, info.sockets,
+                             info.cores, info.threads);
+}
+
 static virtDBusGDBusPropertyTable virtDBusConnectPropertyTable[] = {
     { "Encrypted", virtDBusConnectGetEncrypted, NULL },
     { "Hostname", virtDBusConnectGetHostname, NULL },
@@ -938,6 +962,7 @@ static virtDBusGDBusMethodTable virtDBusConnectMethodTable[] = {
     { "NetworkLookupByUUID", virtDBusConnectNetworkLookupByUUID },
     { "NodeGetCPUStats", virtDBusConnectNodeGetCPUStats },
     { "NodeGetFreeMemory", virtDBusConnectNodeGetFreeMemory },
+    { "NodeGetInfo", virtDBusConnectNodeGetInfo },
     { 0 }
 };
 
