@@ -13,6 +13,13 @@ VIRT_DBUS_ENUM_IMPL(virtDBusConnectCPUCompareResult,
                     "identical",
                     "superset")
 
+VIRT_DBUS_ENUM_DECL(virtDBusConnectNodeSuspendTarget)
+VIRT_DBUS_ENUM_IMPL(virtDBusConnectNodeSuspendTarget,
+                    VIR_NODE_SUSPEND_TARGET_LAST,
+                    "mem",
+                    "disk",
+                    "hybrid")
+
 static gint virtDBusConnectCredType[] = {
     VIR_CRED_AUTHNAME,
     VIR_CRED_ECHOPROMPT,
@@ -1076,6 +1083,40 @@ virtDBusConnectNodeSetMemoryParameters(GVariant *inArgs,
     }
 }
 
+static void
+virtDBusConnectNodeSuspendForDuration(GVariant *inArgs,
+                                      GUnixFDList *inFDs G_GNUC_UNUSED,
+                                      const gchar *objectPath G_GNUC_UNUSED,
+                                      gpointer userData,
+                                      GVariant **outArgs G_GNUC_UNUSED,
+                                      GUnixFDList **outFDs G_GNUC_UNUSED,
+                                      GError **error)
+{
+    virtDBusConnect *connect = userData;
+    const gchar *targetStr;
+    gint target;
+    guint64 duration;
+    guint flags;
+
+    g_variant_get(inArgs, "(&stu)", &targetStr, &duration, &flags);
+
+    if (!virtDBusConnectOpen(connect, error))
+        return;
+
+    target = virtDBusConnectNodeSuspendTargetTypeFromString(targetStr);
+    if (target < 0) {
+        g_set_error(error, VIRT_DBUS_ERROR, VIRT_DBUS_ERROR_LIBVIRT,
+                    "Can't get valid virNodeSuspendTarget from string '%s'.",
+                    targetStr);
+        return;
+    }
+
+    if (virNodeSuspendForDuration(connect->connection, target,
+                                  duration, flags) < 0) {
+        virtDBusUtilSetLastVirtError(error);
+    }
+}
+
 static virtDBusGDBusPropertyTable virtDBusConnectPropertyTable[] = {
     { "Encrypted", virtDBusConnectGetEncrypted, NULL },
     { "Hostname", virtDBusConnectGetHostname, NULL },
@@ -1114,6 +1155,7 @@ static virtDBusGDBusMethodTable virtDBusConnectMethodTable[] = {
     { "NodeGetMemoryStats", virtDBusConnectNodeGetMemoryStats },
     { "NodeGetSecurityModel", virtDBusConnectNodeGetSecurityModel },
     { "NodeSetMemoryParameters", virtDBusConnectNodeSetMemoryParameters },
+    { "NodeSuspendForDuration", virtDBusConnectNodeSuspendForDuration },
     { 0 }
 };
 
