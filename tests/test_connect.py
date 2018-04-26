@@ -168,6 +168,10 @@ class TestConnect(libvirttest.BaseTestClass):
         info = self.connect.NodeGetInfo()
         assert isinstance(info, dbus.Struct)
 
+    def test_connect_node_get_cpumap(self):
+        info = self.connect.NodeGetCPUMap(0)
+        assert isinstance(info, dbus.Array)
+
 
 if __name__ == '__main__':
     libvirttest.run()
