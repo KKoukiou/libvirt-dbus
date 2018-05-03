@@ -251,7 +251,6 @@ virtDBusDomainGetState(const gchar *objectPath,
     virtDBusConnect *connect = userData;
     g_autoptr(virDomain) domain = NULL;
     gint state = 0;
-    const gchar *string;
 
     domain = virtDBusDomainGetVirDomain(connect, objectPath, error);
     if (!domain)
@@ -260,35 +259,7 @@ virtDBusDomainGetState(const gchar *objectPath,
     if (virDomainGetState(domain, &state, NULL, 0) < 0)
         return virtDBusUtilSetLastVirtError(error);
 
-    switch (state) {
-    case VIR_DOMAIN_NOSTATE:
-    default:
-        string = "nostate";
-        break;
-    case VIR_DOMAIN_RUNNING:
-        string = "running";
-        break;
-    case VIR_DOMAIN_BLOCKED:
-        string = "blocked";
-        break;
-    case VIR_DOMAIN_PAUSED:
-        string = "paused";
-        break;
-    case VIR_DOMAIN_SHUTDOWN:
-        string = "shutdown";
-        break;
-    case VIR_DOMAIN_SHUTOFF:
-        string = "shutoff";
-        break;
-    case VIR_DOMAIN_CRASHED:
-        string = "crashed";
-        break;
-    case VIR_DOMAIN_PMSUSPENDED:
-        string = "pmsuspended";
-        break;
-    }
-
-    *value = g_variant_new("s", string);
+    *value = g_variant_new("u", state);
 }
 
 static void
