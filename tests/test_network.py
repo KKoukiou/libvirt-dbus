@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import dbus
-import libvirttest
+from libvirttest import BaseTestClass
+from libvirttest import NetworkEvent
+from libvirttest import run
 import pytest
 
 
-class TestNetwork(libvirttest.BaseTestClass):
+class TestNetwork(BaseTestClass):
     """ Tests for methods and properties of the Network interface
     """
 
@@ -35,7 +37,7 @@ class TestNetwork(libvirttest.BaseTestClass):
 
     def test_network_create(self):
         def domain_started(path, event):
-            if event != libvirttest.NetworkEvent.STARTED:
+            if event != NetworkEvent.STARTED:
                 return
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
@@ -51,7 +53,7 @@ class TestNetwork(libvirttest.BaseTestClass):
 
     def test_network_destroy(self):
         def network_stopped(path, event):
-            if event != libvirttest.NetworkEvent.STOPPED:
+            if event != NetworkEvent.STOPPED:
                 return
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
@@ -71,7 +73,7 @@ class TestNetwork(libvirttest.BaseTestClass):
 
     def test_network_undefine(self):
         def domain_undefined(path, event):
-            if event != libvirttest.NetworkEvent.UNDEFINED:
+            if event != NetworkEvent.UNDEFINED:
                 return
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
@@ -97,4 +99,4 @@ class TestNetwork(libvirttest.BaseTestClass):
 
 
 if __name__ == '__main__':
-    libvirttest.run()
+    run()

@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 
 import dbus
-import libvirttest
+from libvirttest import BaseTestClass
+from libvirttest import DomainEvent
+from libvirttest import DomainEventStoppedDetailType
+from libvirttest import DomainEventSuspendedDetailType
+from libvirttest import DomainEventResumedDetailType
+from libvirttest import DomainEventUndefinedDetailType
+from libvirttest import DomainState
+from libvirttest import run
 
 DBUS_EXCEPTION_MISSING_FUNCTION = 'this function is not supported by the connection driver'
 
-class TestDomain(libvirttest.BaseTestClass):
+class TestDomain(BaseTestClass):
     def test_api(self):
         obj, domain = self.domain()
 
@@ -48,9 +55,9 @@ class TestDomain(libvirttest.BaseTestClass):
 
     def test_domain_managed_save(self):
         def domain_stopped(path, event, detail):
-            if event != libvirttest.DomainEvent.STOPPED:
+            if event != DomainEvent.STOPPED:
                 return
-            assert detail == libvirttest.DomainEventStoppedDetailType.SAVED
+            assert detail == DomainEventStoppedDetailType.SAVED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -60,7 +67,7 @@ class TestDomain(libvirttest.BaseTestClass):
         domain.ManagedSave(0)
         assert domain.HasManagedSaveImage(0) == dbus.Boolean(True)
         state = obj.Get('org.libvirt.Domain', 'State', dbus_interface=dbus.PROPERTIES_IFACE)
-        assert state == libvirttest.DomainState.SHUTOFF
+        assert state == DomainState.SHUTOFF
         domain.ManagedSaveRemove(0)
         assert domain.HasManagedSaveImage(0) == dbus.Boolean(False)
 
@@ -76,9 +83,9 @@ class TestDomain(libvirttest.BaseTestClass):
 
     def test_resume(self):
         def domain_resumed(path, event, detail):
-            if event != libvirttest.DomainEvent.RESUMED:
+            if event != DomainEvent.RESUMED:
                 return
-            assert detail == libvirttest.DomainEventResumedDetailType.UNPAUSED
+            assert detail == DomainEventResumedDetailType.UNPAUSED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -89,15 +96,15 @@ class TestDomain(libvirttest.BaseTestClass):
         domain.Resume()
 
         state = obj.Get('org.libvirt.Domain', 'State', dbus_interface=dbus.PROPERTIES_IFACE)
-        assert state == libvirttest.DomainState.RUNNING
+        assert state == DomainState.RUNNING
 
         self.main_loop()
 
     def test_shutdown(self):
         def domain_stopped(path, event, detail):
-            if event != libvirttest.DomainEvent.STOPPED:
+            if event != DomainEvent.STOPPED:
                 return
-            assert detail == libvirttest.DomainEventStoppedDetailType.SHUTDOWN
+            assert detail == DomainEventStoppedDetailType.SHUTDOWN
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -107,15 +114,15 @@ class TestDomain(libvirttest.BaseTestClass):
         domain.Shutdown(0)
 
         state = obj.Get('org.libvirt.Domain', 'State', dbus_interface=dbus.PROPERTIES_IFACE)
-        assert state == libvirttest.DomainState.SHUTOFF
+        assert state == DomainState.SHUTOFF
 
         self.main_loop()
 
     def test_suspend(self):
         def domain_suspended(path, event, detail):
-            if event != libvirttest.DomainEvent.SUSPENDED:
+            if event != DomainEvent.SUSPENDED:
                 return
-            assert detail == libvirttest.DomainEventSuspendedDetailType.PAUSED
+            assert detail == DomainEventSuspendedDetailType.PAUSED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -125,15 +132,15 @@ class TestDomain(libvirttest.BaseTestClass):
         domain.Suspend()
 
         state = obj.Get('org.libvirt.Domain', 'State', dbus_interface=dbus.PROPERTIES_IFACE)
-        assert state == libvirttest.DomainState.PAUSED
+        assert state == DomainState.PAUSED
 
         self.main_loop()
 
     def test_undefine(self):
         def domain_undefined(path, event, detail):
-            if event != libvirttest.DomainEvent.UNDEFINED:
+            if event != DomainEvent.UNDEFINED:
                 return
-            assert detail == libvirttest.DomainEventUndefinedDetailType.REMOVED
+            assert detail == DomainEventUndefinedDetailType.REMOVED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -153,4 +160,4 @@ class TestDomain(libvirttest.BaseTestClass):
 
 
 if __name__ == '__main__':
-    libvirttest.run()
+    run()

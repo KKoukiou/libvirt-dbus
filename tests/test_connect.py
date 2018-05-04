@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
 import dbus
-import libvirttest
+from libvirttest import BaseTestClass
+from libvirttest import DomainEvent
+from libvirttest import DomainEventDefinedDetailType
+from libvirttest import DomainEventStartedDetailType
+from libvirttest import NetworkEvent
+from libvirttest import run
 import pytest
 
 
-class TestConnect(libvirttest.BaseTestClass):
+class TestConnect(BaseTestClass):
     minimal_domain_xml = '''
     <domain type="test">
       <name>foo</name>
@@ -32,9 +37,9 @@ class TestConnect(libvirttest.BaseTestClass):
 
     def test_connect_domain_create_xml(self):
         def domain_started(path, event, detail):
-            if event != libvirttest.DomainEvent.STARTED:
+            if event != DomainEvent.STARTED:
                 return
-            assert detail == libvirttest.DomainEventStartedDetailType.BOOTED
+            assert detail == DomainEventStartedDetailType.BOOTED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -47,9 +52,9 @@ class TestConnect(libvirttest.BaseTestClass):
 
     def test_comnect_domain_define_xml(self):
         def domain_defined(path, event, detail):
-            if event != libvirttest.DomainEvent.DEFINED:
+            if event != DomainEvent.DEFINED:
                 return
-            assert detail == libvirttest.DomainEventDefinedDetailType.ADDED
+            assert detail == DomainEventDefinedDetailType.ADDED
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
 
@@ -128,7 +133,7 @@ class TestConnect(libvirttest.BaseTestClass):
 
     def test_connect_network_create_xml(self):
         def network_started(path, event):
-            if event != libvirttest.NetworkEvent.STARTED:
+            if event != NetworkEvent.STARTED:
                 return
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
@@ -142,7 +147,7 @@ class TestConnect(libvirttest.BaseTestClass):
 
     def test_connect_network_define_xml(self):
         def network_defined(path, event):
-            if event != libvirttest.NetworkEvent.DEFINED:
+            if event != NetworkEvent.DEFINED:
                 return
             assert isinstance(path, dbus.ObjectPath)
             self.loop.quit()
@@ -168,4 +173,4 @@ class TestConnect(libvirttest.BaseTestClass):
 
 
 if __name__ == '__main__':
-    libvirttest.run()
+    run()
