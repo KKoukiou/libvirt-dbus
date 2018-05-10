@@ -429,6 +429,28 @@ virtDBusEventsDomainPMWakeup(virConnectPtr connection G_GNUC_UNUSED,
 }
 
 static gint
+virtDBusEventsDomainRTCChange(virConnectPtr connection G_GNUC_UNUSED,
+                              virDomainPtr domain,
+                              gint64 utcoffset,
+                              gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "RTCChange",
+                                  g_variant_new("(x)", utcoffset),
+                                  NULL);
+
+    return 0;
+}
+
+static gint
 virtDBusEventsDomainTrayChange(virConnectPtr connection G_GNUC_UNUSED,
                                virDomainPtr domain,
                                const gchar *device,
@@ -690,6 +712,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_PMWAKEUP,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainPMWakeup));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_RTC_CHANGE,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainRTCChange));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_REBOOT,
