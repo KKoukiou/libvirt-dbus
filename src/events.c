@@ -187,6 +187,62 @@ virtDBusEventsDomainDeviceRemoved(virConnectPtr connection G_GNUC_UNUSED,
 }
 
 static gint
+virtDBusEventsDomainGraphics(virConnectPtr connection G_GNUC_UNUSED,
+                             virDomainPtr domain,
+                             gint phase,
+                             const virDomainEventGraphicsAddress *local,
+                             const virDomainEventGraphicsAddress *remote,
+                             const gchar *authScheme,
+                             const virDomainEventGraphicsSubject *subject,
+                             gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+    GVariantBuilder builder;
+    GVariant *gret;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_variant_builder_init(&builder, G_VARIANT_TYPE("(i(iss)(iss)sa(ss))"));
+
+    g_variant_builder_add(&builder, "i", phase);
+
+    g_variant_builder_open(&builder, G_VARIANT_TYPE("(iss)"));
+    g_variant_builder_add(&builder, "i", local->family);
+    g_variant_builder_add(&builder, "s", local->node);
+    g_variant_builder_add(&builder, "s", local->service);
+    g_variant_builder_close(&builder);
+
+    g_variant_builder_open(&builder, G_VARIANT_TYPE("(iss)"));
+    g_variant_builder_add(&builder, "i", remote->family);
+    g_variant_builder_add(&builder, "s", remote->node);
+    g_variant_builder_add(&builder, "s", remote->service);
+    g_variant_builder_close(&builder);
+
+    g_variant_builder_add(&builder, "s", authScheme);
+
+    g_variant_builder_open(&builder, G_VARIANT_TYPE("a(ss)"));
+    for (gint i = 0; i < subject->nidentity; i++) {
+        g_variant_builder_open(&builder, G_VARIANT_TYPE("(ss)"));
+        g_variant_builder_add(&builder, "ss", subject->identities[i].type);
+        g_variant_builder_add(&builder, "ss", subject->identities[i].name);
+        g_variant_builder_close(&builder);
+    }
+    g_variant_builder_close(&builder);
+    gret = g_variant_builder_end(&builder);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "Graphics",
+                                  gret,
+                                  NULL);
+
+    return 0;
+}
+
+static gint
 virtDBusEventsDomainTrayChange(virConnectPtr connection G_GNUC_UNUSED,
                                virDomainPtr domain,
                                const gchar *device,
@@ -412,6 +468,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_DISK_CHANGE,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainDiskChange));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_GRAPHICS,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainGraphics));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_REBOOT,
