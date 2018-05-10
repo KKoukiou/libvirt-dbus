@@ -657,6 +657,11 @@
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventMigrationIterationCallback"/>
       <arg name="iteration" type="i"/>
     </signal>
+    <signal name="PMSuspend">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendCallback"/>
+      <arg name="reason" type="u"/>
+    </signal>
     <signal name="TrayChange">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventTrayChangeCallback"/>
