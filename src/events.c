@@ -407,6 +407,28 @@ virtDBusEventsDomainPMSuspendDisk(virConnectPtr connection G_GNUC_UNUSED,
 }
 
 static gint
+virtDBusEventsDomainPMWakeup(virConnectPtr connection G_GNUC_UNUSED,
+                             virDomainPtr domain,
+                             guint reason,
+                             gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "PMWakeup",
+                                  g_variant_new("(u)", reason),
+                                  NULL);
+
+    return 0;
+}
+
+static gint
 virtDBusEventsDomainTrayChange(virConnectPtr connection G_GNUC_UNUSED,
                                virDomainPtr domain,
                                const gchar *device,
@@ -664,6 +686,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainPMSuspendDisk));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_PMWAKEUP,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainPMWakeup));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_REBOOT,
