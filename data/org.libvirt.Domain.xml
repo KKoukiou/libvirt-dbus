@@ -641,6 +641,11 @@
       <arg name="action" type="u"/>
       <arg name="reason" type="s"/>
     </signal>
+    <signal name="JobCompleted">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventJobCompletedCallback"/>
+      <arg name="params" type="a{sv}"/>
+    </signal>
     <signal name="TrayChange">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventTrayChangeCallback"/>
