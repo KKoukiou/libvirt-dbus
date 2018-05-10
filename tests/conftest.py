@@ -10,6 +10,7 @@ def dbus_daemon_session():
     dbus_daemon = subprocess.Popen(['dbus-daemon', '--session', '--print-address'],
                                    stdout=subprocess.PIPE, universal_newlines=True)
     os.environ['DBUS_SESSION_BUS_ADDRESS'] = dbus_daemon.stdout.readline().strip()
+
     yield
     dbus_daemon.terminate()
     dbus_daemon.wait(timeout=10)
