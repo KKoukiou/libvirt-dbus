@@ -118,8 +118,6 @@ virtDBusEventsDomainLifecycle(virConnectPtr connection G_GNUC_UNUSED,
     return 0;
 }
 
-
-
 static gint
 virtDBusEventsDomainDeviceAdded(virConnectPtr connection G_GNUC_UNUSED,
                                 virDomainPtr domain,
@@ -237,6 +235,31 @@ virtDBusEventsDomainGraphics(virConnectPtr connection G_GNUC_UNUSED,
                                   VIRT_DBUS_DOMAIN_INTERFACE,
                                   "Graphics",
                                   gret,
+                                  NULL);
+
+    return 0;
+}
+
+static gint
+virtDBusEventsDomainIOError(virConnectPtr connection G_GNUC_UNUSED,
+                            virDomainPtr domain,
+                            const gchar *srcPath,
+                            const gchar *device,
+                            gint action,
+                            gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "IOError",
+                                  g_variant_new("(ssu)", srcPath, device,
+                                                action),
                                   NULL);
 
     return 0;
@@ -472,6 +495,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_GRAPHICS,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainGraphics));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_IO_ERROR,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainIOError));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_REBOOT,
