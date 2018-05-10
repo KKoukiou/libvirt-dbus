@@ -662,6 +662,11 @@
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendCallback"/>
       <arg name="reason" type="u"/>
     </signal>
+    <signal name="PMSuspendDisk">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventPMSuspendDiskCallback"/>
+      <arg name="reason" type="u"/>
+    </signal>
     <signal name="TrayChange">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventTrayChangeCallback"/>
