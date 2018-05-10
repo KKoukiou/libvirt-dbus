@@ -590,6 +590,10 @@
       <arg name="type" type="u"/>
       <arg name="status" type="u"/>
     </signal>
+    <signal name="ControlError">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventGenericCallback"/>
+    </signal>
     <signal name="DeviceAdded">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventDeviceAddedCallback"/>

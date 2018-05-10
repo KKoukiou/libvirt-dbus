@@ -75,6 +75,27 @@ virtDBusEventsDomainBlockJob(virConnectPtr connection G_GNUC_UNUSED,
 }
 
 static gint
+virtDBusEventsDomainControlError(virConnectPtr connection G_GNUC_UNUSED,
+                                 virDomainPtr domain,
+                                 gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "ControlError",
+                                  NULL,
+                                  NULL);
+
+    return 0;
+}
+
+static gint
 virtDBusEventsDomainLifecycle(virConnectPtr connection G_GNUC_UNUSED,
                               virDomainPtr domain,
                               gint event,
@@ -96,6 +117,8 @@ virtDBusEventsDomainLifecycle(virConnectPtr connection G_GNUC_UNUSED,
 
     return 0;
 }
+
+
 
 static gint
 virtDBusEventsDomainDeviceAdded(virConnectPtr connection G_GNUC_UNUSED,
@@ -343,6 +366,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainBlockJob));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_CONTROL_ERROR,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainControlError));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_LIFECYCLE,
