@@ -583,6 +583,13 @@
       <arg name="type" type="u"/>
       <arg name="status" type="u"/>
     </signal>
+    <signal name="BlockJob_2">
+      <annotation name="org.gtk.GDBus.DocString"
+        value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventBlockJobCallback"/>
+      <arg name="disk" type="s"/>
+      <arg name="type" type="u"/>
+      <arg name="status" type="u"/>
+    </signal>
     <signal name="DeviceAdded">
       <annotation name="org.gtk.GDBus.DocString"
         value="See https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventDeviceAddedCallback"/>

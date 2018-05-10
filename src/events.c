@@ -341,6 +341,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainBlockJob));
 
     virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainBlockJob));
+
+    virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_LIFECYCLE,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainLifecycle));
 
