@@ -51,6 +51,30 @@ virtDBusEventsDomainBalloonChange(virConnectPtr connection G_GNUC_UNUSED,
 }
 
 static gint
+virtDBusEventsDomainBlockJob(virConnectPtr connection G_GNUC_UNUSED,
+                             virDomainPtr domain,
+                             gchar *disk,
+                             gint type,
+                             gint status,
+                             gpointer opaque)
+{
+    virtDBusConnect *connect = opaque;
+    g_autofree gchar *path = NULL;
+
+    path = virtDBusUtilBusPathForVirDomain(domain, connect->domainPath);
+
+    g_dbus_connection_emit_signal(connect->bus,
+                                  NULL,
+                                  path,
+                                  VIRT_DBUS_DOMAIN_INTERFACE,
+                                  "BlockJob",
+                                  g_variant_new("(suu)", disk, type, status),
+                                  NULL);
+
+    return 0;
+}
+
+static gint
 virtDBusEventsDomainLifecycle(virConnectPtr connection G_GNUC_UNUSED,
                               virDomainPtr domain,
                               gint event,
@@ -311,6 +335,10 @@ virtDBusEventsRegister(virtDBusConnect *connect)
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE,
                                       VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainBalloonChange));
+
+    virtDBusEventsRegisterDomainEvent(connect,
+                                      VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
+                                      VIR_DOMAIN_EVENT_CALLBACK(virtDBusEventsDomainBlockJob));
 
     virtDBusEventsRegisterDomainEvent(connect,
                                       VIR_DOMAIN_EVENT_ID_LIFECYCLE,
