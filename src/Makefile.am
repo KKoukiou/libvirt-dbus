@@ -12,7 +12,8 @@ DAEMON_SOURCES = \
 	network.c network.h \
 	nwfilter.c nwfilter.h \
 	secret.c secret.h \
-	storagepool.c storagepool.h
+	storagepool.c storagepool.h \
+	storagevol.c storagevol.h
 
 EXTRA_DIST = \
 	$(DAEMON_SOURCES)
