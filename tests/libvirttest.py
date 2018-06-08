@@ -100,6 +100,23 @@ class BaseTestClass():
         obj = self.bus.get_object('org.libvirt', path)
         return path, obj
 
+    def test_storage_vol(self):
+        minimal_storage_vol_xml = '''
+        <volume>
+          <name>sparse.img</name>
+          <capacity unit="G">2</capacity>
+          <target>
+            <path>/var/lib/virt/images/sparse.img</path>
+          </target>
+        </volume>
+        '''
+        _, test_storage_pool = self.test_storage_pool()
+        interface_obj = dbus.Interface(test_storage_pool,
+                                       'org.libvirt.StoragePool')
+        path = interface_obj.StorageVolCreateXML(minimal_storage_vol_xml, 0)
+        obj = self.bus.get_object('org.libvirt', path)
+        return path, obj
+
 
 class DomainEvent(IntEnum):
     DEFINED = 0

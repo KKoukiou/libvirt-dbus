@@ -126,6 +126,10 @@ class TestStoragePool(libvirttest.BaseTestClass):
 
         self.main_loop()
 
+    def test_storage_pool_volume_create(self):
+        path, _ = self.test_storage_vol()
+        assert isinstance(path, dbus.ObjectPath)
+
 
 if __name__ == '__main__':
     libvirttest.run()
