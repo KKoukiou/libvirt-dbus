@@ -402,6 +402,39 @@ virtDBusStoragePoolStorageVolCreateXML(GVariant *inArgs,
 }
 
 static void
+virtDBusStoragePoolStorageVolLookupByName(GVariant *inArgs,
+                                          GUnixFDList *inFDs G_GNUC_UNUSED,
+                                          const gchar *objectPath G_GNUC_UNUSED,
+                                          gpointer userData,
+                                          GVariant **outArgs,
+                                          GUnixFDList **outFDs G_GNUC_UNUSED,
+                                          GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virStoragePool) storagePool = NULL;
+    g_autoptr(virStorageVol) storageVol = NULL;
+    g_autofree gchar *path = NULL;
+    const gchar *name;
+
+    g_variant_get(inArgs, "(&s)", &name);
+
+    storagePool = virtDBusStoragePoolGetVirStoragePool(connect, objectPath,
+                                                       error);
+    if (!storagePool)
+        return;
+
+    storageVol = virStorageVolLookupByName(storagePool, name);
+
+    if (!storageVol)
+        return virtDBusUtilSetLastVirtError(error);
+
+    path = virtDBusUtilBusPathForVirStorageVol(storageVol,
+                                               connect->storageVolPath);
+
+    *outArgs = g_variant_new("(o)", path);
+}
+
+static void
 virtDBusStoragePoolUndefine(GVariant *inArgs G_GNUC_UNUSED,
                             GUnixFDList *inFDs G_GNUC_UNUSED,
                             const gchar *objectPath,
@@ -442,6 +475,7 @@ static virtDBusGDBusMethodTable virtDBusStoragePoolMethodTable[] = {
     { "ListStorageVolumes", virtDBusStoragePoolListAllVolumes },
     { "Refresh", virtDBusStoragePoolRefresh },
     { "StorageVolCreateXML", virtDBusStoragePoolStorageVolCreateXML },
+    { "StorageVolLookupByName", virtDBusStoragePoolStorageVolLookupByName },
     { "Undefine", virtDBusStoragePoolUndefine },
     { 0 }
 };
