@@ -132,6 +132,12 @@ class TestStoragePool(libvirttest.BaseTestClass):
 
 
 class TestStorageVolume(libvirttest.BaseTestClass):
+    def test_storage_vol_delete(self):
+        test_storage_vol_path, test_storage_vol = self.test_storage_vol()
+        interface_obj = dbus.Interface(test_storage_vol,
+                                       'org.libvirt.StorageVol')
+        interface_obj.Delete(0)
+
     def test_storage_vol_properties_type(self):
         _, obj = self.test_storage_vol()
 
