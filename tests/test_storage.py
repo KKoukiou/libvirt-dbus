@@ -131,5 +131,14 @@ class TestStoragePool(libvirttest.BaseTestClass):
         assert isinstance(path, dbus.ObjectPath)
 
 
+class TestStorageVolume(libvirttest.BaseTestClass):
+    def test_storage_vol_properties_type(self):
+        _, obj = self.test_storage_vol()
+
+        props = obj.GetAll('org.libvirt.StorageVol',
+                           dbus_interface=dbus.PROPERTIES_IFACE)
+        assert isinstance(props['Name'], dbus.String)
+
+
 if __name__ == '__main__':
     libvirttest.run()
