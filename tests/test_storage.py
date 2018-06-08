@@ -130,6 +130,27 @@ class TestStoragePool(libvirttest.BaseTestClass):
         path, _ = self.test_storage_vol()
         assert isinstance(path, dbus.ObjectPath)
 
+    def test_storage_pool_volume_create_xml_from(self):
+        minimal_storage_vol_clone_xml = '''
+        <volume>
+          <name>clone.img</name>
+          <capacity unit="G">1</capacity>
+        </volume>
+        '''
+        _, test_storage_vol = self.test_storage_vol()
+        props = test_storage_vol.GetAll('org.libvirt.StorageVol',
+                                        dbus_interface=dbus.PROPERTIES_IFACE)
+        test_storage_vol_key = str(props['Key'])
+
+        _, test_storage_pool = self.test_storage_pool()
+        storage_pool_iface = dbus.Interface(test_storage_pool,
+                                            'org.libvirt.StoragePool')
+
+        new_vol_path = storage_pool_iface.StorageVolCreateXMLFrom(minimal_storage_vol_clone_xml,
+                                                                  test_storage_vol_key,
+                                                                  0)
+        assert isinstance(new_vol_path, dbus.ObjectPath)
+
 
 class TestStorageVolume(libvirttest.BaseTestClass):
     def test_storage_vol_delete(self):
