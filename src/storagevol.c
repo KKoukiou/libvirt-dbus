@@ -68,9 +68,32 @@ virtDBusStorageVolGetKey(const gchar *objectPath,
     *value = g_variant_new("s", key);
 }
 
+static void
+virtDBusStorageVolGetPath(const gchar *objectPath,
+                          gpointer userData,
+                          GVariant **value,
+                          GError **error)
+{
+    virtDBusConnect *connect = userData;
+    g_autoptr(virStorageVol) storageVol = NULL;
+    const gchar *key;
+
+    storageVol = virtDBusStorageVolGetVirStorageVol(connect, objectPath,
+                                                    error);
+    if (!storageVol)
+        return;
+
+    key = virStorageVolGetPath(storageVol);
+    if (!key)
+        return virtDBusUtilSetLastVirtError(error);
+
+    *value = g_variant_new("s", key);
+}
+
 static virtDBusGDBusPropertyTable virtDBusStorageVolPropertyTable[] = {
     { "Name", virtDBusStorageVolGetName, NULL },
     { "Key", virtDBusStorageVolGetKey, NULL },
+    { "Path", virtDBusStorageVolGetPath, NULL },
     { 0 }
 };
 
