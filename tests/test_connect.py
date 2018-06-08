@@ -247,6 +247,7 @@ class TestConnect(libvirttest.BaseTestClass):
 
     @pytest.mark.parametrize("lookup_method_name,lookup_item", [
         ("StorageVolLookupByKey", 'Key'),
+        ("StorageVolLookupByPath", 'Path'),
     ])
     def test_connect_storage_vol_lookup_by_property(self,
                                                     lookup_method_name,
