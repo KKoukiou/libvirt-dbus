@@ -141,6 +141,13 @@ class TestStorageVolume(libvirttest.BaseTestClass):
         assert isinstance(props['Name'], dbus.String)
         assert isinstance(props['Path'], dbus.String)
 
+    def test_storage_vol_get_xml_description(self):
+        _, test_storage_vol = self.test_storage_vol()
+        interface_obj = dbus.Interface(test_storage_vol,
+                                       'org.libvirt.StorageVol')
+        xml = interface_obj.GetXMLDesc(0)
+        assert isinstance(xml, dbus.String)
+
 
 if __name__ == '__main__':
     libvirttest.run()
