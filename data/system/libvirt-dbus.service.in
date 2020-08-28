@@ -15,6 +15,7 @@ BusName=org.libvirt
 DynamicUser=yes
 User=@SYSTEM_USER@
 Group=@SYSTEM_USER@
+SupplementaryGroups=libvirt
 ExecStart=@sbindir@/libvirt-dbus --system
 
 [Install]
